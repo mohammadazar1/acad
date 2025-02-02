@@ -16,18 +16,31 @@ export async function GET(request: Request) {
   }
 
   try {
-    let query = supabase.from("coach_salaries").select("*")
+    let query = supabase.from("coach_salaries").select(`
+      id,
+      coach_id,
+      amount,
+      payment_date,
+      notes,
+      coaches (
+        id,
+        name,
+        academyId
+      )
+    `)
 
     if (session.user.role === "COACH") {
       if (!session.user.id) {
-        throw new Error("Coach ID is undefined")
+        console.error("Coach ID is undefined in the session")
+        return NextResponse.json({ error: "Coach ID is missing" }, { status: 400 })
       }
       query = query.eq("coach_id", session.user.id)
     } else if (session.user.role === "ACADEMY") {
       if (!session.user.academyId) {
-        throw new Error("Academy ID is undefined")
+        console.error("Academy ID is undefined in the session")
+        return NextResponse.json({ error: "Academy ID is missing" }, { status: 400 })
       }
-      query = query.eq("academyId", session.user.academyId)
+      query = query.eq("coaches.academyId", session.user.academyId)
     }
 
     const { data, error } = await query
@@ -37,8 +50,14 @@ export async function GET(request: Request) {
       throw error
     }
 
-    console.log("Fetched coach salaries:", data)
-    return NextResponse.json(data)
+    // Filter out any salaries where the coach's academyId doesn't match the current user's academyId
+    const filteredData =
+      session.user.role === "ACADEMY"
+        ? data.filter((salary) => salary.coaches?.academyId === session.user.academyId)
+        : data
+
+    console.log("Fetched coach salaries:", filteredData)
+    return NextResponse.json(filteredData)
   } catch (error) {
     console.error("Error in /api/coaches/salaries:", error)
     return NextResponse.json({ error: "Failed to fetch coach salaries" }, { status: 500 })

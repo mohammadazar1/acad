@@ -53,7 +53,7 @@ export interface Coach {
 export interface CoachSalary {
   id: string
   coach_id: string
-  coach_name?: string
+  name?: string
   amount: number
   payment_date: string
   academyId: string

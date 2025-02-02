@@ -19,8 +19,14 @@ export async function GET(request: Request) {
     let query = supabase.from("coach_salaries").select("*")
 
     if (session.user.role === "COACH") {
+      if (!session.user.id) {
+        throw new Error("Coach ID is undefined")
+      }
       query = query.eq("coach_id", session.user.id)
     } else if (session.user.role === "ACADEMY") {
+      if (!session.user.academyId) {
+        throw new Error("Academy ID is undefined")
+      }
       query = query.eq("academyId", session.user.academyId)
     }
 

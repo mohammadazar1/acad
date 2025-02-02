@@ -27,14 +27,18 @@ export default function CoachSalaryPage() {
       setSalaries(data || [])
     } catch (error) {
       console.error("Error fetching salaries:", error)
-      setError("Failed to fetch salary data: " + error.message)
+      setError("Failed to fetch salary data: " + (error instanceof Error ? error.message : String(error)))
     } finally {
       setIsLoading(false)
     }
   }
 
   if (status === "loading" || isLoading) {
-    return <div className="container mx-auto px-4 py-8">Loading...</div>
+    return <div className="container mx-auto px-4 py-8">جاري التحميل...</div>
+  }
+
+  if (status === "unauthenticated") {
+    return <div className="container mx-auto px-4 py-8">يرجى تسجيل الدخول لعرض بيانات الرواتب</div>
   }
 
   if (error) {
@@ -43,24 +47,26 @@ export default function CoachSalaryPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-4">Coach Salaries</h1>
+      <h1 className="text-3xl font-bold mb-4">رواتب المدربين</h1>
       {salaries.length === 0 ? (
-        <p>No salary data available.</p>
+        <p>لا توجد بيانات رواتب متاحة.</p>
       ) : (
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-gray-200">
-              <th className="border border-gray-400 p-2">Coach Name</th>
-              <th className="border border-gray-400 p-2">Salary Amount</th>
-              <th className="border border-gray-400 p-2">Payment Date</th>
+              <th className="border border-gray-400 p-2">اسم المدرب</th>
+              <th className="border border-gray-400 p-2">مبلغ الراتب</th>
+              <th className="border border-gray-400 p-2">تاريخ الدفع</th>
             </tr>
           </thead>
           <tbody>
             {salaries.map((salary) => (
               <tr key={salary.id}>
-                <td className="border border-gray-400 p-2">{salary.coach_name || "N/A"}</td>
+                <td className="border border-gray-400 p-2">{salary.coach_name || "غير متوفر"}</td>
                 <td className="border border-gray-400 p-2">{salary.amount}</td>
-                <td className="border border-gray-400 p-2">{new Date(salary.payment_date).toLocaleDateString()}</td>
+                <td className="border border-gray-400 p-2">
+                  {new Date(salary.payment_date).toLocaleDateString("ar-EG")}
+                </td>
               </tr>
             ))}
           </tbody>

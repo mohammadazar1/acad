@@ -127,14 +127,14 @@ export default function CoachesPage() {
     }
   }
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (coach_id: string) => {
     if (window.confirm("هل أنت متأكد من رغبتك في حذف هذا المدرب؟")) {
       try {
-        const { error } = await supabase.from("coaches").delete().eq("id", id)
+        const { error } = await supabase.from("coaches").delete().eq("id", coach_id)
 
         if (error) throw error
 
-        setCoaches(coaches.filter((coach) => coach.id !== id))
+        setCoaches(coaches.filter((coach) => coach.id !== coach_id))
         alert("تم حذف المدرب بنجاح")
       } catch (error) {
         console.error("Error deleting coach:", error)

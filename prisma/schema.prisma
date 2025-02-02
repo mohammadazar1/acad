@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       String   @id @default(cuid())
+  name     String
+  email    String   @unique
+  password String
+  role     UserRole @default(ACADEMY)
+  academyId String?
+  academy   Academy? @relation(fields: [academyId], references: [id])
+}
+
+model Academy {
+  id       String @id @default(cuid())
+  name     String
+  users    User[]
+  players  Player[]
+}
+
+enum UserRole {
+  ADMIN
+  ACADEMY
+}
+
+model Player {
+  id                Int      @id @default(autoincrement())
+  name              String
+  age               Int
+  sport             String
+  subscription      String
+  subscriptionPrice Float
+  startDate         DateTime
+  autoRenew         Boolean
+  isActive          Boolean
+  lastPaymentDate   DateTime?
+  payments          Payment[]
+  academyId         String
+  academy           Academy  @relation(fields: [academyId], references: [id])
+}
+
+model Payment {
+  id       Int      @id @default(autoincrement())
+  amount   Float
+  date     DateTime
+  player   Player   @relation(fields: [playerId], references: [id])
+  playerId Int
+}
+

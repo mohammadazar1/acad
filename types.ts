@@ -51,12 +51,15 @@ export interface Coach {
 }
 
 export interface CoachSalary {
-  id: string;
-  coach_id: string;
-  amount: number;
-  payment_date: string;
-  notes?: string;
+  id: string
+  coach_id: string
+  coach_name?: string
+  amount: number
+  payment_date: string
+  academyId: string
 }
+
+
 
 export interface RevenueItem {
   id: string;

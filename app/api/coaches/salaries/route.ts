@@ -34,9 +34,6 @@ export async function GET(request: Request) {
 
     if (error) {
       console.error("Supabase error fetching salaries:", error)
-      if (error.code === "22P02") {
-        return NextResponse.json({ error: "Invalid ID provided" }, { status: 400 })
-      }
       throw error
     }
 

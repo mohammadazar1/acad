@@ -42,7 +42,15 @@ export default function CoachSalaryPage() {
   }
 
   if (error) {
-    return <div className="container mx-auto px-4 py-8 text-red-500">{error}</div>
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold mb-4">رواتب المدربين</h1>
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <strong className="font-bold">خطأ: </strong>
+          <span className="block sm:inline">{error}</span>
+        </div>
+      </div>
+    )
   }
 
   return (

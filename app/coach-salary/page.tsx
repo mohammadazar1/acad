@@ -13,9 +13,11 @@ export default function CoachSalaryPage() {
 
   useEffect(() => {
     if (status === "authenticated") {
+      console.log("Session data:", session)
+      console.log("Coach ID:", session.user.coach_id) // Add this line
       fetchSalaries()
     }
-  }, [status])
+  }, [status, session])
 
   const fetchSalaries = async () => {
     try {

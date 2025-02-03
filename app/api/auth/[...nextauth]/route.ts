@@ -55,7 +55,6 @@ export const authOptions: NextAuthOptions = {
 
         return {
           id: user.id,
-           coach_id: coach.id, // Add this line
 
           email: user.email,
           name: user.name,

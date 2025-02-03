@@ -54,7 +54,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         return {
-          id: coach.id,
+          id: user.id,
            coach_id: coach.id, // Add this line
 
           email: user.email,
@@ -101,15 +101,16 @@ export const authOptions: NextAuthOptions = {
           throw new Error('كلمة المرور غير صحيحة')
         }
 
-        return {
-          id: coach.id,
+         return {
+          id: coach.id, // Keep this for consistency with other user types
+          coach_id: coach.id, // Add this line
           email: coach.email,
           name: coach.name,
-          role: 'COACH',
+          role: "COACH",
           academyId: coach.academyId,
         }
-      }
-    })
+      },
+    }),
   ],
   callbacks: {
     async jwt({ token, user }) {

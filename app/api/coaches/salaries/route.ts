@@ -30,11 +30,11 @@ export async function GET(request: Request) {
     `)
 
     if (session.user.role === "COACH") {
-      if (!session.user.id) {
+      if (!session.user.coach_id) {
         console.error("Coach ID is undefined in the session")
         return NextResponse.json({ error: "Coach ID is missing" }, { status: 400 })
       }
-      query = query.eq("coach_id", session.user.id)
+      query = query.eq("coach_id", session.user.coach_id)
     } else if (session.user.role === "ACADEMY") {
       if (!session.user.academyId) {
         console.error("Academy ID is undefined in the session")

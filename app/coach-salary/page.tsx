@@ -14,7 +14,7 @@ export default function CoachSalaryPage() {
   useEffect(() => {
     if (status === "authenticated") {
       console.log("Session data:", session)
-      console.log("Coach ID:", session.user.coach_id) // Add this line
+      console.log("Coach ID:", session.user.coach_id)
       fetchSalaries()
     }
   }, [status, session])
@@ -27,7 +27,12 @@ export default function CoachSalaryPage() {
         throw new Error(errorData.error || "Failed to fetch salaries")
       }
       const data = await response.json()
-      setSalaries(data || [])
+      console.log("Fetched salaries data:", data)
+      if (Array.isArray(data) && data.length > 0) {
+        setSalaries(data)
+      } else {
+        setError("لا توجد رواتب مسجلة")
+      }
     } catch (error) {
       console.error("Error fetching salaries:", error)
       setError("Failed to fetch salary data: " + (error instanceof Error ? error.message : String(error)))
@@ -54,37 +59,39 @@ export default function CoachSalaryPage() {
     return <div className="container mx-auto px-4 py-8 text-center text-red-500">{error}</div>
   }
 
-  const totalSalaries = salaries.reduce((total, salary) => total + salary.amount, 0)
-
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">رواتب المدربين</h1>
-      {salaries.length === 0 ? (
-        <p className="text-center text-gray-600">لا توجد بيانات رواتب متاحة.</p>
+      <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">تفاصيل الراتب</h1>
+      {error ? (
+        <p className="text-center text-red-500">{error}</p>
+      ) : salaries.length === 0 ? (
+        <p className="text-center text-gray-600">لا توجد رواتب مسجلة.</p>
       ) : (
         <>
           <div className="bg-white shadow-md rounded-lg overflow-hidden mb-6">
             <table className="w-full">
               <thead className="bg-gray-200">
                 <tr>
-                  <th className="px-4 py-2 text-right">اسم المدرب</th>
                   <th className="px-4 py-2 text-right">مبلغ الراتب</th>
                   <th className="px-4 py-2 text-right">تاريخ الدفع</th>
+                  <th className="px-4 py-2 text-right">ملاحظات</th>
                 </tr>
               </thead>
               <tbody>
                 {salaries.map((salary) => (
                   <tr key={salary.id} className="border-b border-gray-200 hover:bg-gray-100">
-                    <td className="px-4 py-2">{salary.name || "غير معروف"}</td>
                     <td className="px-4 py-2">{salary.amount.toFixed(2)} شيكل</td>
                     <td className="px-4 py-2">{new Date(salary.payment_date).toLocaleDateString("ar-EG")}</td>
+                    <td className="px-4 py-2">{salary.notes || "-"}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
           <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 rounded-lg">
-            <p className="font-bold">إجمالي الرواتب المدفوعة: {totalSalaries.toFixed(2)} شيكل</p>
+            <p className="font-bold">
+              إجمالي الرواتب المدفوعة: {salaries.reduce((total, salary) => total + salary.amount, 0).toFixed(2)} شيكل
+            </p>
           </div>
         </>
       )}

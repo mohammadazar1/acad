@@ -55,6 +55,8 @@ export const authOptions: NextAuthOptions = {
 
         return {
           id: user.id,
+           coach_id: coach.id, // Add this line
+
           email: user.email,
           name: user.name,
           role: user.role,
@@ -114,6 +116,10 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.role = user.role;
         token.academyId = user.academyId;
+        token.id = user.id
+        if (user && user.role === "COACH") {
+          token.coach_id = user.coach_id
+        }
       }
       return token
     },
@@ -121,6 +127,10 @@ export const authOptions: NextAuthOptions = {
       if (session?.user) {
         session.user.role = token.role as string;
         session.user.academyId = token.academyId as string;
+         session.user.id = token.id as string
+         if (token.role === "COACH") {
+          session.user.coach_id = token.coach_id as string
+        }
       }
       return session
     }

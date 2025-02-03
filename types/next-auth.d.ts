@@ -1,8 +1,9 @@
+import NextAuth from "next-auth"
+
 declare module "next-auth" {
   interface Session {
     user: {
       id: string
-      coach_id?: string
       name: string
       email: string
       role: string
@@ -13,7 +14,6 @@ declare module "next-auth" {
 
   interface User {
     id: string
-    coach_id?: string
     name: string
     email: string
     role: string
@@ -25,7 +25,6 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     id: string
-    coach_id?: string
     role: string
     academyId: string
     academyName: string

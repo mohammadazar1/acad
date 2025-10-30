@@ -68,7 +68,7 @@
     "chart.js": "latest",
     "@react-navigation/native": "latest",
     "next-auth": "latest",
-    "@react-native-async-storage/async-storage": "latest",
+    "@react-native-async-storage/async-storage": "1.17.11",
     "xlsx": "latest",
     "@supabase/supabase-js": "latest",
     "@prisma/client": "latest",

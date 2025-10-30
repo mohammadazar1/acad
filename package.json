@@ -66,7 +66,7 @@
     "typescript": "latest",
     "jspdf": "latest",
     "chart.js": "latest",
-    "@react-navigation/native": "latest",
+    
     "next-auth": "latest",
     
     "xlsx": "latest",

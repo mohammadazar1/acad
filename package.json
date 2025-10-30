@@ -59,7 +59,7 @@
     "vaul": "^0.9.6",
     "zod": "^3.24.1",
     "@types/react": "latest",
-    "react-native": "0.72.10",
+    
     "@auth/core": "latest",
     "nodemailer": "latest",
     "prisma": "latest",
@@ -68,7 +68,7 @@
     "chart.js": "latest",
     "@react-navigation/native": "latest",
     "next-auth": "latest",
-    "@react-native-async-storage/async-storage": "1.21.0",
+    
     "xlsx": "latest",
     "@supabase/supabase-js": "latest",
     "@prisma/client": "latest",

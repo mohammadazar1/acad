@@ -11,8 +11,18 @@ export async function POST(request: Request) {
 
   try {
     const { date, division, attendance } = await request.json()
+    const parsedDate = typeof date === 'string' ? new Date(`${date}T00:00:00.000Z`) : null
 
-    if (!date || !division || !attendance) {
+    if (
+      !parsedDate ||
+      Number.isNaN(parsedDate.getTime()) ||
+      parsedDate.toISOString().slice(0, 10) !== date ||
+      typeof division !== 'string' ||
+      !division.trim() ||
+      !attendance ||
+      typeof attendance !== 'object' ||
+      Array.isArray(attendance)
+    ) {
       return NextResponse.json({ error: 'Invalid data: missing date, division, or attendance' }, { status: 400 })
     }
 
@@ -26,23 +36,31 @@ export async function POST(request: Request) {
 
     if (playerError) throw playerError
 
-    const activePlayerIds = activePlayers.map(player => player.id)
+    const activePlayerIds = new Map((activePlayers ?? []).map((player) => [String(player.id), player.id]))
 
-    const attendanceRecords = Object.entries(attendance)
-      .filter(([playerId, _]) => activePlayerIds.includes(playerId))
-      .map(([playerId, isPresent]) => ({
-        academyId: session.user.academyId,
-        date,
-        division,
-        player_id: playerId,
-        is_present: isPresent,
-      }))
+    const attendanceRecords = Object.entries(attendance as Record<string, unknown>).flatMap(
+      ([submittedPlayerId, isPresent]) => {
+        const playerId = activePlayerIds.get(submittedPlayerId)
+        if (playerId === undefined || typeof isPresent !== 'boolean') return []
+
+        return [{
+          academyId: session.user.academyId,
+          date,
+          division,
+          player_id: playerId,
+          is_present: isPresent,
+        }]
+      },
+    )
+
+    if (attendanceRecords.length === 0) {
+      return NextResponse.json({ error: 'No active players were provided for attendance.' }, { status: 400 })
+    }
 
     const { data, error } = await supabase
       .from('attendance')
-      .upsert(attendanceRecords, { 
+      .upsert(attendanceRecords, {
         onConflict: 'academyId,date,division,player_id',
-        update: ['is_present']
       })
 
     if (error) {

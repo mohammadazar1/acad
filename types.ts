@@ -12,6 +12,11 @@ export interface Player {
   division: string;
   academyId: string;
   subscription: 'monthly' | 'yearly';
+  lastPaymentDate?: string | null;
+  attendanceSubscriptionEnabled?: boolean;
+  attendanceSubscriptionDays?: number;
+  attendanceSessionsUsed?: number;
+  attendanceSessionsRemaining?: number;
 }
 
 export interface Payment {

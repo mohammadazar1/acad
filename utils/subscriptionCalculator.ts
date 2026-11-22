@@ -48,6 +48,9 @@ interface Player {
   subscription: string;
   subscriptionPrice: number;
   payments?: { date: string; amount: number }[];
+  attendanceSubscriptionEnabled?: boolean;
+  attendanceSubscriptionDays?: number;
+  attendanceSessionsUsed?: number;
 }
 
 export function calculateSubscriptionForYear(player: Player, year: number) {
@@ -68,6 +71,26 @@ export function calculateSubscriptionForYear(player: Player, year: number) {
 }
 
 export function calculatePlayerFinances(player: Player) {
+  if (player.attendanceSubscriptionEnabled) {
+    const subscriptionDays = Math.max(1, player.attendanceSubscriptionDays ?? 5)
+    const attendanceSessionsUsed = Math.max(0, player.attendanceSessionsUsed ?? 0)
+    const unpaidPeriods = Math.floor(attendanceSessionsUsed / subscriptionDays)
+    const payments = Array.isArray(player.payments) ? player.payments : []
+    const totalPaid = payments.reduce((total, payment) => total + Math.max(0, payment.amount), 0)
+    const totalDiscounts = payments.reduce((total, payment) => total + Math.max(0, -payment.amount), 0)
+    const remainingDue = Math.max(0, unpaidPeriods * player.subscriptionPrice - totalDiscounts)
+    const paidMonths = player.subscriptionPrice > 0 ? Math.floor(totalPaid / player.subscriptionPrice) : 0
+
+    return {
+      monthsDue: paidMonths + unpaidPeriods,
+      paidMonths,
+      totalDue: totalPaid + remainingDue,
+      totalPaid,
+      totalDiscounts,
+      remainingDue,
+    }
+  }
+
   const startDate = new Date(player.created_at);
   const today = new Date();
   const monthsDiff = (today.getFullYear() - startDate.getFullYear()) * 12 + today.getMonth() - startDate.getMonth();

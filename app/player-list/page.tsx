@@ -120,7 +120,20 @@ function PlayerList() {
                 <td className="py-4 px-6 text-right whitespace-nowrap">{player.age}</td>
                 <td className="py-4 px-6 text-right whitespace-nowrap">{player.sport}</td>
                 <td className="py-4 px-6 text-right whitespace-nowrap">{player.division}</td>
-                <td className="py-4 px-6 text-right whitespace-nowrap">{player.subscription}</td>
+                <td className="py-4 px-6 text-right whitespace-nowrap">
+                  {player.attendanceSubscriptionEnabled ? (
+                    <span>
+                      {player.attendanceSessionsUsed ?? 0} / {player.attendanceSubscriptionDays ?? 5} مرات حضور
+                      <span className="mt-1 block text-xs text-gray-500">
+                        {player.attendanceSessionsRemaining === 0
+                          ? 'حان موعد التجديد'
+                          : `متبقي ${player.attendanceSessionsRemaining} مرات`}
+                      </span>
+                    </span>
+                  ) : (
+                    player.subscription === 'monthly' ? 'شهري' : 'سنوي'
+                  )}
+                </td>
                 <td className="py-4 px-6 text-right whitespace-nowrap">
                   <span
                     className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${player.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}

@@ -37,24 +37,22 @@ export async function POST(request: Request) {
     if (playerError) throw playerError
 
     const activePlayerIds = new Map((activePlayers ?? []).map((player) => [String(player.id), player.id]))
-
-    const attendanceRecords = Object.entries(attendance as Record<string, unknown>).flatMap(
-      ([submittedPlayerId, isPresent]) => {
-        const playerId = activePlayerIds.get(submittedPlayerId)
-        if (playerId === undefined || typeof isPresent !== 'boolean') return []
-
-        return [{
-          academyId: session.user.academyId,
-          date,
-          division,
-          player_id: playerId,
-          is_present: isPresent,
-        }]
-      },
+    const submittedPresence = new Map(
+      Object.entries(attendance as Record<string, unknown>)
+        .filter(([playerId, isPresent]) => activePlayerIds.has(playerId) && typeof isPresent === 'boolean')
+        .map(([playerId, isPresent]) => [playerId, isPresent as boolean]),
     )
 
+    const attendanceRecords = (activePlayers ?? []).map((player) => ({
+      academyId: session.user.academyId,
+      date,
+      division,
+      player_id: player.id,
+      is_present: submittedPresence.get(String(player.id)) ?? false,
+    }))
+
     if (attendanceRecords.length === 0) {
-      return NextResponse.json({ error: 'No active players were provided for attendance.' }, { status: 400 })
+      return NextResponse.json({ error: 'No active players were found for attendance.' }, { status: 400 })
     }
 
     const { data, error } = await supabase

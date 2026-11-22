@@ -3,6 +3,7 @@ import { supabase } from '../../../lib/supabase'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../auth/[...nextauth]/route'
 import { checkAcademyStatus } from '../../../lib/checkAcademyStatus'
+import { attachAttendanceSubscriptionUsage } from '../../../lib/attendanceSubscription'
 
 export async function GET(request: Request) {
   const statusCheck = await checkAcademyStatus(request)
@@ -28,7 +29,12 @@ export async function GET(request: Request) {
 
     if (error) throw error
 
-    return NextResponse.json(data)
+    const playersWithAttendanceUsage = await attachAttendanceSubscriptionUsage(
+      data ?? [],
+      session.user.academyId,
+    )
+
+    return NextResponse.json(playersWithAttendanceUsage)
   } catch (error) {
     console.error('Error fetching players:', error)
     return NextResponse.json({ error: 'Failed to fetch players' }, { status: 400 })

@@ -2,6 +2,46 @@ import { NextResponse } from 'next/server'
 import { supabase } from '../../../../lib/supabase'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../../auth/[...nextauth]/route'
+import { attachAttendanceSubscriptionUsage } from '../../../../lib/attendanceSubscription'
+
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } },
+) {
+  const session = await getServerSession(authOptions)
+  if (!session || !session.user.academyId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  try {
+    const { data: player, error } = await supabase
+      .from('players')
+      .select(`
+        *,
+        payments (
+          id,
+          amount,
+          date
+        )
+      `)
+      .eq('id', params.id)
+      .eq('academyId', session.user.academyId)
+      .maybeSingle()
+
+    if (error) throw error
+    if (!player) return NextResponse.json({ error: 'Player not found' }, { status: 404 })
+
+    const [playerWithAttendanceUsage] = await attachAttendanceSubscriptionUsage(
+      [player],
+      session.user.academyId,
+    )
+
+    return NextResponse.json(playerWithAttendanceUsage)
+  } catch (error) {
+    console.error('Error fetching player:', error)
+    return NextResponse.json({ error: 'Failed to fetch player' }, { status: 500 })
+  }
+}
 
 export async function DELETE(
   request: Request,

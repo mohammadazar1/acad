@@ -10,6 +10,8 @@ export default function AcademySettings() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [academyName, setAcademyName] = useState('')
+  const [attendanceSubscriptionEnabled, setAttendanceSubscriptionEnabled] = useState(false)
+  const [attendanceSubscriptionDays, setAttendanceSubscriptionDays] = useState(5)
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
@@ -32,13 +34,15 @@ export default function AcademySettings() {
     try {
       const { data, error } = await supabase
         .from('academies')
-        .select('name, logo_url')
+        .select('name, logo_url, attendance_subscription_enabled, attendance_subscription_days')
         .eq('id', session?.user.academyId)
         .single()
 
       if (error) throw error
       setAcademyName(data.name)
       setCurrentLogo(data.logo_url)
+      setAttendanceSubscriptionEnabled(Boolean(data.attendance_subscription_enabled))
+      setAttendanceSubscriptionDays(data.attendance_subscription_days ?? 5)
     } catch (error) {
       console.error('Error fetching academy details:', error)
       setError('فشل في جلب تفاصيل الأكاديمية')
@@ -64,7 +68,16 @@ export default function AcademySettings() {
     }
 
     try {
-      const updates: { name?: string; password?: string; logo_url?: string } = {}
+      const updates: {
+        name?: string
+        password?: string
+        logo_url?: string
+        attendance_subscription_enabled: boolean
+        attendance_subscription_days: number
+      } = {
+        attendance_subscription_enabled: attendanceSubscriptionEnabled,
+        attendance_subscription_days: attendanceSubscriptionDays,
+      }
       if (academyName) updates.name = academyName
       if (newPassword) updates.password = newPassword
 
@@ -101,9 +114,11 @@ export default function AcademySettings() {
       fetchAcademyDetails() // Refresh academy details
     } catch (error) {
       console.error('Error updating academy details:', error)
-      setError(error.message || 'فشل في تحديث بيانات الأكاديمية')
+      setError(error instanceof Error ? error.message : 'فشل في تحديث بيانات الأكاديمية')
     }
   }
+
+  const logoSource = logoPreview ?? currentLogo
 
   if (status === 'loading') {
     return <div className="container mx-auto px-4 py-8">جاري التحميل...</div>
@@ -113,8 +128,8 @@ export default function AcademySettings() {
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8 text-center">إعدادات الأكاديمية</h1>
       <form onSubmit={handleSubmit} className="max-w-md mx-auto bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
-        {error && <p className="text-red-500 mb-4">{error}</p>}
-        {success && <p className="text-green-500 mb-4">{success}</p>}
+        {error && <p className="text-red-500 mb-4" role="alert">{error}</p>}
+        {success && <p className="text-green-500 mb-4" role="status">{success}</p>}
         <div className="mb-4">
           <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="academyName">
             اسم الأكاديمية
@@ -140,10 +155,10 @@ export default function AcademySettings() {
             onChange={handleLogoChange}
           />
         </div>
-        {(logoPreview || currentLogo) && (
+        {logoSource && (
           <div className="mb-4">
             <Image
-              src={logoPreview || currentLogo}
+              src={logoSource}
               alt="شعار الأكاديمية"
               width={100}
               height={100}
@@ -151,6 +166,48 @@ export default function AcademySettings() {
             />
           </div>
         )}
+        <section className="mb-6 border-t border-gray-200 pt-5" aria-labelledby="attendance-subscription-title">
+          <h2 id="attendance-subscription-title" className="text-lg font-bold text-gray-800">
+            احتساب الاشتراك حسب الحضور
+          </h2>
+          <p id="attendance-subscription-help" className="mt-1 text-sm text-gray-600">
+            تُحسب كل مرة يسجل فيها المدرب حضور الشعبة، حتى إذا كان اللاعب غائبًا.
+          </p>
+          <label htmlFor="attendanceSubscriptionEnabled" className="mt-4 flex items-center gap-3 text-sm font-medium text-gray-700">
+            <input
+              id="attendanceSubscriptionEnabled"
+              type="checkbox"
+              checked={attendanceSubscriptionEnabled}
+              onChange={(event) => setAttendanceSubscriptionEnabled(event.target.checked)}
+              aria-describedby="attendance-subscription-help"
+              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            تفعيل الاشتراك بعدد مرات تسجيل الحضور
+          </label>
+          <div className="mt-4">
+            <label className="mb-2 block text-sm font-bold text-gray-700" htmlFor="attendanceSubscriptionDays">
+              عدد مرات تسجيل الحضور لكل اشتراك
+            </label>
+            <input
+              id="attendanceSubscriptionDays"
+              type="number"
+              min={1}
+              max={365}
+              step={1}
+              value={attendanceSubscriptionDays}
+              onChange={(event) => {
+                const value = Number(event.target.value)
+                if (Number.isInteger(value) && value >= 1 && value <= 365) {
+                  setAttendanceSubscriptionDays(value)
+                }
+              }}
+              disabled={!attendanceSubscriptionEnabled}
+              required={attendanceSubscriptionEnabled}
+              className="w-full rounded border border-gray-300 px-3 py-2 text-gray-700 disabled:cursor-not-allowed disabled:bg-gray-100"
+            />
+            <p className="mt-1 text-xs text-gray-500">اختر عددًا بين 1 و365.</p>
+          </div>
+        </section>
         <div className="mb-4">
           <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="newPassword">
             كلمة المرور الجديدة (اتركها فارغة إذا لم ترغب في تغييرها)

@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+body {
+  font-family: 'Tajawal', sans-serif;
+}
+
 /* Add any custom styles below this line */
 
 .bg-pattern {

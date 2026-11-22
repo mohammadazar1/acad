@@ -11,11 +11,29 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { name, password, logo_url } = await request.json()
-    const updates: { name?: string; logo_url?: string } = {}
-    
+    const body = await request.json()
+    const { name, password, logo_url } = body
+    const updates: {
+      name?: string
+      logo_url?: string
+      attendance_subscription_enabled?: boolean
+      attendance_subscription_days?: number
+    } = {}
+
     if (name) updates.name = name
     if (logo_url) updates.logo_url = logo_url
+
+    if ('attendance_subscription_enabled' in body || 'attendance_subscription_days' in body) {
+      const enabled = body.attendance_subscription_enabled
+      const days = body.attendance_subscription_days
+
+      if (typeof enabled !== 'boolean' || !Number.isInteger(days) || days < 1 || days > 365) {
+        return NextResponse.json({ error: 'Invalid attendance subscription settings' }, { status: 400 })
+      }
+
+      updates.attendance_subscription_enabled = enabled
+      updates.attendance_subscription_days = days
+    }
 
     // Update academy details
     const { error: academyError } = await supabase

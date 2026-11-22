@@ -10,6 +10,7 @@ import EditPlayerModal from "../../components/EditPlayerModal"
 import SearchInput from "../../components/SearchInput"
 import { format } from "date-fns"
 import { exportToExcel } from "../../utils/excelExport"
+import { calculatePlayerFinances as calculateAttendancePlayerFinances } from "../../utils/subscriptionCalculator"
 
 export default function FinancialReport() {
   const [players, setPlayers] = useState<Player[]>([])
@@ -52,23 +53,13 @@ export default function FinancialReport() {
   }, [status, session, selectedYear])
 
   const fetchPlayers = async () => {
-    const { data, error } = await supabase
-      .from("players")
-      .select(`
-        *,
-        payments (
-          id,
-          amount,
-          date
-        )
-      `)
-      .eq("academyId", session?.user.academyId)
-
-    if (error) {
+    try {
+      const response = await fetch("/api/players")
+      if (!response.ok) throw new Error("Failed to fetch players")
+      setPlayers((await response.json()) || [])
+    } catch (error) {
       console.error("Error fetching players:", error)
       alert("حدث خطأ أثناء جلب بيانات اللاعبين")
-    } else {
-      setPlayers(data || [])
     }
   }
 
@@ -138,10 +129,14 @@ export default function FinancialReport() {
     const startDate = new Date(player.created_at)
     const today = new Date()
     const monthsDiff = (today.getFullYear() - startDate.getFullYear()) * 12 + today.getMonth() - startDate.getMonth()
-    return Math.max(0, monthsDiff + 1) // +1 to include the current month
+    return Math.max(0, monthsDiff + 1)
   }
 
   const calculatePlayerFinances = (player: Player) => {
+    if (player.attendanceSubscriptionEnabled) {
+      return calculateAttendancePlayerFinances(player)
+    }
+
     const monthsDue = calculateMonthsDue(player)
     const totalDue =
       player.subscription === "monthly"
@@ -150,8 +145,6 @@ export default function FinancialReport() {
 
     let remainingDue = totalDue
     let paidMonths = 0
-
-    // Sort payments by date
     const sortedPayments = [...player.payments].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
     for (const payment of sortedPayments) {
@@ -330,8 +323,8 @@ export default function FinancialReport() {
               <tr className="bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
                 <th className="py-3 px-6 text-right">اسم اللاعب</th>
                 <th className="py-3 px-6 text-right">تاريخ التسجيل</th>
-                <th className="py-3 px-6 text-right">الأشهر المستحقة</th>
-                <th className="py-3 px-6 text-right">الأشهر المدفوعة</th>
+                <th className="py-3 px-6 text-right">الفترات المستحقة</th>
+                <th className="py-3 px-6 text-right">الفترات المدفوعة</th>
                 <th className="py-3 px-6 text-right">المبلغ المستحق</th>
                 <th className="py-3 px-6 text-right">إجمالي المدفوعات</th>
                 <th className="py-3 px-6 text-right">المبلغ المتبقي</th>

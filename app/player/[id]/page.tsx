@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { Player, Payment } from '../../../types'
 import { exportPlayerReport, exportPlayerReportToExcel } from '../../../utils/pdfExport'
-import { calculateSubscriptionPeriods, calculatePlayerFinances } from '../../../utils/subscriptionCalculator'
+import { calculatePlayerFinances } from '../../../utils/subscriptionCalculator'
 import { supabase } from '../../../lib/supabase'
 import EditPlayerModal from '../../../components/EditPlayerModal'
 import Navbar from '../../../components/Navbar'
@@ -24,21 +24,10 @@ export default function PlayerDetails() {
     if (params.id) {
       try {
         setIsLoading(true)
-        const { data, error } = await supabase
-          .from('players')
-          .select(`
-            *,
-            payments (
-              id,
-              amount,
-              date
-            )
-          `)
-          .eq('id', params.id)
-          .single()
+        const response = await fetch(`/api/players/${params.id}`)
+        if (!response.ok) throw new Error('Failed to fetch player data')
 
-        if (error) throw error
-
+        const data = await response.json()
         setPlayer(data)
       } catch (error) {
         setError('Error fetching player data. Please try again.')
@@ -115,7 +104,7 @@ export default function PlayerDetails() {
   const handleToggleActive = async () => {
     if (player) {
       try {
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('players')
           .update({ isActive: !player.isActive })
           .eq('id', player.id)
@@ -123,7 +112,7 @@ export default function PlayerDetails() {
 
         if (error) throw error
 
-        setPlayer(data[0])
+        await fetchPlayer()
       } catch (error) {
         console.error('Error updating player status:', error)
         alert('Failed to update player status. Please try again.')
@@ -140,11 +129,14 @@ export default function PlayerDetails() {
   };
 
   const handleUpdatePlayer = (updatedPlayer: Player) => {
-    setPlayer(updatedPlayer);
-    setIsEditModalOpen(false);
+    setPlayer(updatedPlayer)
+    setIsEditModalOpen(false)
+    void fetchPlayer()
   };
 
   const handleDeletePayment = async (paymentId: number) => {
+    if (!player) return
+
     if (window.confirm('هل أنت متأكد من رغبتك في حذف هذه الدفعة؟')) {
       try {
         const response = await fetch(`/api/players/${player.id}/payments/${paymentId}`, {
@@ -155,10 +147,8 @@ export default function PlayerDetails() {
           throw new Error('Failed to delete payment');
         }
 
-        const updatedPlayer = { ...player };
-        updatedPlayer.payments = updatedPlayer.payments.filter(payment => payment.id !== paymentId);
-        setPlayer(updatedPlayer);
-        alert('تم حذف الدفعة بنجاح');
+        await fetchPlayer()
+        alert('تم حذف الدفعة بنجاح')
       } catch (error) {
         console.error('Error deleting payment:', error);
         alert('حدث خطأ أثناء حذف الدفعة');
@@ -179,8 +169,6 @@ export default function PlayerDetails() {
   }
 
   const { monthsDue, paidMonths, totalDue, totalPaid, remainingDue } = calculatePlayerFinances(player);
-  const subscriptionPeriods = calculateSubscriptionPeriods(player.created_at, player.subscriptionPrice, player.subscription);
-
   return (
     <div className="min-h-screen bg-gray-100">
       <Navbar />
@@ -228,8 +216,8 @@ export default function PlayerDetails() {
                 <p><strong>العمر:</strong> {player.age}</p>
                 <p><strong>الرياضة:</strong> {player.sport}</p>
                 <p><strong>الشعبة:</strong> {player.division}</p>
-                <p><strong>نوع الاشتراك:</strong> {player.subscription === 'monthly' ? 'شهري' : 'سنوي'}</p>
-                <p><strong>سعر الاشتراك:</strong> {player.subscriptionPrice} شيكل {player.subscription === 'monthly' ? 'شهرياً' : 'سنوياً'}</p>
+                <p><strong>طريقة احتساب الاشتراك:</strong> {player.attendanceSubscriptionEnabled ? 'حسب تسجيل الحضور' : player.subscription === 'monthly' ? 'شهري' : 'سنوي'}</p>
+                <p><strong>سعر الاشتراك:</strong> {player.subscriptionPrice} شيكل {player.attendanceSubscriptionEnabled ? `لكل ${player.attendanceSubscriptionDays ?? 5} مرات حضور` : player.subscription === 'monthly' ? 'شهرياً' : 'سنوياً'}</p>
                 <p><strong>الحالة:</strong> <span className={player.isActive ? 'text-green-600' : 'text-red-600'}>{player.isActive ? 'نشط' : 'موقوف'}</span></p>
                 <p><strong>تجديد تلقائي:</strong> {player.autoRenew ? 'نعم' : 'لا'}</p>
               </div>
@@ -238,8 +226,18 @@ export default function PlayerDetails() {
                   <CalendarIcon className="mr-2" /> معلومات الاشتراك
                 </h2>
                 <p><strong>تاريخ التسجيل:</strong> {new Date(player.created_at).toLocaleDateString('ar-EG')}</p>
-                <p><strong>الأشهر المستحقة:</strong> {monthsDue}</p>
-                <p><strong>الأشهر المدفوعة:</strong> {paidMonths}</p>
+                {player.attendanceSubscriptionEnabled ? (
+                  <>
+                    <p><strong>مرات تسجيل الحضور:</strong> {player.attendanceSessionsUsed ?? 0} من {player.attendanceSubscriptionDays ?? 5}</p>
+                    <p><strong>المتبقي:</strong> {player.attendanceSessionsRemaining ?? player.attendanceSubscriptionDays ?? 5} مرات حضور</p>
+                    <p><strong>حالة الاشتراك:</strong> {(player.attendanceSessionsRemaining ?? 0) === 0 ? 'حان موعد التجديد' : 'ساري'}</p>
+                  </>
+                ) : (
+                  <>
+                    <p><strong>الأشهر المستحقة:</strong> {monthsDue}</p>
+                    <p><strong>الأشهر المدفوعة:</strong> {paidMonths}</p>
+                  </>
+                )}
                 <p><strong>إجمالي المبلغ المستحق:</strong> {totalDue.toFixed(2)} شيكل</p>
                 <p><strong>إجمالي المدفوعات:</strong> {totalPaid.toFixed(2)} شيكل</p>
                 <p><strong>المبلغ المتبقي:</strong> {remainingDue.toFixed(2)} شيكل</p>

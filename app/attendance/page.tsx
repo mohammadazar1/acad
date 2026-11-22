@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react'
 import { supabase } from '../../lib/supabaseClient'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { ar } from 'date-fns/locale'
+import MarkAllPresentButton from '../../components/MarkAllPresentButton'
 
 export default function AttendancePage() {
   const [players, setPlayers] = useState<Player[]>([])
@@ -108,10 +109,10 @@ export default function AttendancePage() {
       const monthlyData = players
         .filter(player => player.division === selectedDivision)
         .map(player => {
-          const playerAttendance = data.filter(record => record.player_id === player.id && record.is_present)
+          const playerAttendance = data.filter(record => String(record.player_id) === String(player.id) && record.is_present)
           const attendanceDates = playerAttendance.map(record => record.date)
           const attendanceCount = playerAttendance.length
-          const totalDays = data.filter(record => record.player_id === player.id).length
+          const totalDays = data.filter(record => String(record.player_id) === String(player.id)).length
           const attendancePercentage = totalDays > 0 ? (attendanceCount / totalDays) * 100 : 0
 
           return {
@@ -140,22 +141,14 @@ export default function AttendancePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      const attendanceRecords = Object.entries(attendance).map(([playerId, isPresent]) => ({
-        academyId: session?.user.academyId,
-        date: selectedDate,
-        division: selectedDivision,
-        player_id: playerId,
-        is_present: isPresent,
-      }))
+      const response = await fetch('/api/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: selectedDate, division: selectedDivision, attendance }),
+      })
+      const result = await response.json()
 
-      const { data, error } = await supabase
-        .from('attendance')
-        .upsert(attendanceRecords, { 
-          onConflict: 'academyId,date,division,player_id',
-          update: ['is_present']
-        })
-
-      if (error) throw error
+      if (!response.ok) throw new Error(result.error || 'تعذّر تسجيل الحضور.')
       alert('تم تسجيل الحضور بنجاح')
       fetchMonthlyAttendance()
     } catch (error) {
@@ -163,6 +156,8 @@ export default function AttendancePage() {
       alert(`فشل في تسجيل الحضور: ${error instanceof Error ? error.message : 'حدث خطأ غير معروف'}`)
     }
   }
+
+  const selectedDivisionPlayers = players.filter((player) => player.division === selectedDivision)
 
   if (status === "loading") {
     return <p>جاري التحميل...</p>
@@ -208,10 +203,10 @@ export default function AttendancePage() {
         </div>
         {selectedDate && selectedDivision && (
           <>
-            {players.filter(player => player.division === selectedDivision).length === 0 && (
+            {selectedDivisionPlayers.length === 0 && (
               <p className="text-center text-gray-600 my-4">لا يوجد لاعبون نشطون في هذه الشعبة</p>
             )}
-            {players.filter(player => player.division === selectedDivision).length > 0 && (
+            {selectedDivisionPlayers.length > 0 && (
               <table className="min-w-full bg-white mb-4">
                 <thead>
                   <tr className="bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
@@ -220,7 +215,7 @@ export default function AttendancePage() {
                   </tr>
                 </thead>
                 <tbody className="text-gray-600 text-sm font-light">
-                  {players.filter(player => player.division === selectedDivision).map((player) => (
+                  {selectedDivisionPlayers.map((player) => (
                     <tr key={player.id} className="border-b border-gray-200 hover:bg-gray-100">
                       <td className="py-3 px-6 text-right">{player.name}</td>
                       <td className="py-3 px-6 text-right">
@@ -228,6 +223,7 @@ export default function AttendancePage() {
                           type="checkbox"
                           checked={attendance[player.id] || false}
                           onChange={() => handleAttendanceChange(player.id)}
+                          aria-label={`تسجيل حضور ${player.name}`}
                         />
                       </td>
                     </tr>
@@ -237,7 +233,16 @@ export default function AttendancePage() {
             )}
           </>
         )}
-        <div className="mt-4">
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-start">
+          <MarkAllPresentButton
+            date={selectedDate}
+            division={selectedDivision}
+            players={selectedDivisionPlayers}
+            onMarked={(markedAttendance) => {
+              setAttendance((previous) => ({ ...previous, ...markedAttendance }))
+              void fetchMonthlyAttendance()
+            }}
+          />
           <button
             type="submit"
             className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
@@ -277,7 +282,7 @@ export default function AttendancePage() {
                 <td className="py-3 px-6 text-right">{record.name}</td>
                 <td className="py-3 px-6 text-right">{record.attendanceCount}</td>
                 <td className="py-3 px-6 text-right">
-                  {record.attendanceDates.map(date => format(new Date(date), 'dd/MM/yyyy')).join(', ')}
+                  {record.attendanceDates.map((date: string) => format(new Date(date), 'dd/MM/yyyy')).join(', ')}
                 </td>
                 <td className="py-3 px-6 text-right">{record.attendancePercentage.toFixed(2)}%</td>
               </tr>

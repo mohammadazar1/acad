@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useSession } from "next-auth/react"
 import type { Player } from "../../types"
 import SearchInput from "../../components/SearchInput"
+import DivisionDiscountForm from "../../components/DivisionDiscountForm"
 import { withAcademyStatus } from "../../components/withAcademyStatus"
 import { Bar } from "react-chartjs-2"
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from "chart.js"
@@ -83,6 +84,9 @@ function PlayerList() {
     <div className="bg-white shadow-lg rounded-lg p-6">
       <h1 className="text-3xl font-bold mb-8 text-center text-gray-800">قائمة اللاعبين</h1>
       <SearchInput placeholder="ابحث عن لاعب..." value={searchTerm} onChange={setSearchTerm} />
+      <div className="mt-6">
+        <DivisionDiscountForm players={players} />
+      </div>
       <div className="mb-8 bg-gray-100 p-4 rounded-lg shadow-inner">
         <Bar data={chartData} options={chartOptions} />
       </div>
